@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>lz4 (Dart)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0b1020;
+        --fg: #e8edf6;
+        --muted: #b5c0d6;
+        --card: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.14);
+        --link: #79b8ff;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f6f8fc;
+          --fg: #0c1222;
+          --muted: #38455f;
+          --card: rgba(0, 0, 0, 0.04);
+          --border: rgba(0, 0, 0, 0.12);
+          --link: #0550ae;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px;
+      }
+      h1 {
+        margin: 0 0 8px 0;
+        font-size: 34px;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 10px 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .item strong {
+        display: block;
+        color: var(--fg);
+        margin-bottom: 4px;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 0.95em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>lz4 (Dart)</h1>
+        <p>
+          Pure Dart implementation of LZ4 (block + frame) with planned LZ4HC
+          support.
+        </p>
+        <p>
+          Current status: early development. The public API in
+          <code>lib/lz4.dart</code> is currently a stub and will throw
+          <code>UnimplementedError()</code>.
+        </p>
+        <div class="grid">
+          <div class="item">
+            <strong>Repository</strong>
+            <a href="https://github.com/jxoesneon/lz4"
+              >github.com/jxoesneon/lz4</a
+            >
+          </div>
+          <div class="item">
+            <strong>Issues</strong>
+            <a href="https://github.com/jxoesneon/lz4/issues"
+              >Report bugs / request features</a
+            >
+          </div>
+          <div class="item">
+            <strong>Docs</strong>
+            <a href="https://github.com/jxoesneon/lz4/blob/main/README.md"
+              >README</a
+            >
+          </div>
+          <div class="item">
+            <strong>Security</strong>
+            <a href="https://github.com/jxoesneon/lz4/security/advisories"
+              >Security advisories</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
