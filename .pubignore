@@ -7,6 +7,7 @@
 benchmark/
 tool/
 test/
+docs/
 
 # IDE/editor
 .vscode/
