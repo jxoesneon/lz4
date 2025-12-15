@@ -1,0 +1,17 @@
+.windsurf/
+
+# GitHub metadata and CI
+.github/
+
+# Developer-only directories
+benchmark/
+tool/
+test/
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Local env
+.env
+.env.*
