@@ -6,7 +6,7 @@ import 'src/block/lz4_block_encoder.dart';
 import 'src/frame/lz4_frame_decoder.dart';
 import 'src/frame/lz4_frame_encoder.dart';
 import 'src/frame/lz4_frame_stream_decoder.dart';
-import 'src/internal/lz4_exception.dart';
+import 'src/hc/lz4_hc_block_encoder.dart';
 
 enum Lz4CompressionLevel {
   fast,
@@ -22,7 +22,7 @@ Uint8List lz4Compress(
     case Lz4CompressionLevel.fast:
       return lz4BlockCompress(src, acceleration: acceleration);
     case Lz4CompressionLevel.hc:
-      throw const Lz4UnsupportedFeatureException('LZ4HC is not implemented');
+      return lz4HcBlockCompress(src);
   }
 }
 
