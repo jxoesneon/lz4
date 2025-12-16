@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dart_lz4/dart_lz4.dart';
-import 'package:dart_lz4/src/internal/lz4_exception.dart';
+import 'package:dart_lz4/src/internal/lz4_exception.dart' as lz4_ex;
 import 'package:test/test.dart';
 
 Iterable<List<int>> _chunk(Uint8List bytes, List<int> sizes) sync* {
@@ -97,13 +97,54 @@ void main() {
     expect(decoded, src);
   });
 
-  test('lz4FrameEncoderWithOptions rejects dependent-block encoding', () {
-    expect(
-      () => lz4FrameEncoderWithOptions(
-        options: Lz4FrameOptions(blockIndependence: false),
-      ),
-      throwsA(isA<Lz4UnsupportedFeatureException>()),
-    );
+  test('lz4FrameEncoderWithOptions supports dependent-block encoding',
+      () async {
+    const blockSize = 64 * 1024;
+
+    final block = Uint8List(blockSize);
+    for (var i = 0; i < block.length; i++) {
+      block[i] = (i * 31) & 0xff;
+    }
+
+    final shifted = Uint8List(blockSize);
+    shifted.setRange(0, blockSize - 1, block, 1);
+    shifted[blockSize - 1] = block[blockSize - 1];
+
+    final src = Uint8List(blockSize * 2);
+    src.setRange(0, blockSize, block);
+    src.setRange(blockSize, blockSize * 2, shifted);
+
+    final independentChunks = await Stream<List<int>>.fromIterable(
+      _chunk(src, [1024, 4096, 2048, 8192, 123]),
+    )
+        .transform(
+          lz4FrameEncoderWithOptions(
+            options: Lz4FrameOptions(
+              blockSize: Lz4FrameBlockSize.k64KB,
+              blockIndependence: true,
+            ),
+          ),
+        )
+        .toList();
+
+    final dependentChunks = await Stream<List<int>>.fromIterable(
+      _chunk(src, [1024, 4096, 2048, 8192, 123]),
+    )
+        .transform(
+          lz4FrameEncoderWithOptions(
+            options: Lz4FrameOptions(
+              blockSize: Lz4FrameBlockSize.k64KB,
+              blockIndependence: false,
+            ),
+          ),
+        )
+        .toList();
+
+    final independent = _concat(independentChunks);
+    final dependent = _concat(dependentChunks);
+
+    expect(lz4FrameDecode(dependent), src);
+    expect(dependent.length, lessThan(independent.length));
   });
 
   test('lz4FrameEncoderWithOptions rejects stream longer than contentSize',
@@ -115,7 +156,7 @@ void main() {
       _chunk(src, [1, 1, 1, 1, 1]),
     ).transform(lz4FrameEncoderWithOptions(options: options)).toList();
 
-    await expectLater(future, throwsA(isA<Lz4FormatException>()));
+    await expectLater(future, throwsA(isA<lz4_ex.Lz4FormatException>()));
   });
 
   test('lz4FrameEncoderWithOptions rejects stream shorter than contentSize',
@@ -127,6 +168,6 @@ void main() {
       _chunk(src, [2, 3]),
     ).transform(lz4FrameEncoderWithOptions(options: options)).toList();
 
-    await expectLater(future, throwsA(isA<Lz4FormatException>()));
+    await expectLater(future, throwsA(isA<lz4_ex.Lz4FormatException>()));
   });
 }
