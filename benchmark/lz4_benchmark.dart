@@ -12,21 +12,37 @@ void main() {
 }
 
 void _bench(String name, Uint8List input) {
-  final compressed = lz4Compress(input);
+  print('--- $name ---');
+  print('input: ${input.length} bytes');
+
+  _benchCodec('fast', input, () => lz4Compress(input));
+  _benchCodec(
+    'hc',
+    input,
+    () => lz4Compress(input, level: Lz4CompressionLevel.hc),
+  );
+
+  print('');
+}
+
+void _benchCodec(
+  String label,
+  Uint8List input,
+  Uint8List Function() compressFn,
+) {
+  final compressed = compressFn();
   final decompressed =
       lz4Decompress(compressed, decompressedSize: input.length);
   if (!_bytesEqual(decompressed, input)) {
-    throw StateError('roundtrip mismatch');
+    throw StateError('roundtrip mismatch ($label)');
   }
 
   final ratio = input.isEmpty ? 1.0 : compressed.length / input.length;
-  print('--- $name ---');
-  print('input: ${input.length} bytes');
   print(
-      'compressed: ${compressed.length} bytes (ratio: ${ratio.toStringAsFixed(3)})');
+      '[$label] compressed: ${compressed.length} bytes (ratio: ${ratio.toStringAsFixed(3)})');
 
   final compressMbPerSec = _throughput(
-    () => lz4Compress(input),
+    compressFn,
     bytesProcessed: input.length,
   );
 
@@ -35,9 +51,8 @@ void _bench(String name, Uint8List input) {
     bytesProcessed: input.length,
   );
 
-  print('compress: ${compressMbPerSec.toStringAsFixed(1)} MiB/s');
-  print('decompress: ${decompressMbPerSec.toStringAsFixed(1)} MiB/s');
-  print('');
+  print('[$label] compress: ${compressMbPerSec.toStringAsFixed(1)} MiB/s');
+  print('[$label] decompress: ${decompressMbPerSec.toStringAsFixed(1)} MiB/s');
 }
 
 double _throughput(
