@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'src/block/lz4_block_decoder.dart';
 import 'src/block/lz4_block_encoder.dart';
 import 'src/frame/lz4_frame_decoder.dart';
 import 'src/frame/lz4_frame_encoder.dart';
+import 'src/frame/lz4_frame_stream_decoder.dart';
 import 'src/internal/lz4_exception.dart';
 
 enum Lz4CompressionLevel {
@@ -43,4 +45,10 @@ Uint8List lz4FrameDecode(
   int? maxOutputBytes,
 }) {
   return lz4FrameDecodeBytes(src, maxOutputBytes: maxOutputBytes);
+}
+
+StreamTransformer<List<int>, List<int>> lz4FrameDecoder({
+  int? maxOutputBytes,
+}) {
+  return lz4FrameDecoderTransformer(maxOutputBytes: maxOutputBytes);
 }
