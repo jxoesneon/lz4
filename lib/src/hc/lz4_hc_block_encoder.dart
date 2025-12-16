@@ -5,6 +5,7 @@ import 'lz4_hc_options.dart';
 
 Uint8List lz4HcBlockCompress(
   Uint8List src, {
+  Uint8List? dictionary,
   Lz4HcOptions? options,
 }) {
   final opt = options ?? Lz4HcOptions();
@@ -14,11 +15,33 @@ Uint8List lz4HcBlockCompress(
     return Uint8List(0);
   }
 
+  const historyWindow = 64 * 1024;
+  const dictionaryWindow = historyWindow - 1;
+  final dictFull = dictionary;
+  final dict = (dictFull != null && dictFull.isNotEmpty)
+      ? (dictFull.length > dictionaryWindow
+          ? Uint8List.sublistView(
+              dictFull,
+              dictFull.length - dictionaryWindow,
+            )
+          : dictFull)
+      : null;
+  final dictLength = dict?.length ?? 0;
+
+  final Uint8List input;
+  if (dictLength == 0) {
+    input = src;
+  } else {
+    input = Uint8List(dictLength + inputLength);
+    input.setRange(0, dictLength, dict!);
+    input.setRange(dictLength, dictLength + inputLength, src);
+  }
+
   final writer = ByteWriter(initialCapacity: inputLength);
 
   const minMatch = 4;
   if (inputLength < minMatch) {
-    _writeLastLiterals(writer, src, 0, inputLength);
+    _writeLastLiterals(writer, input, dictLength, inputLength);
     return writer.toBytes();
   }
 
@@ -27,10 +50,10 @@ Uint8List lz4HcBlockCompress(
   const hashShift = 32 - hashLog;
 
   final hashTable = List<int>.filled(hashSize, -1, growable: false);
-  final chain = List<int>.filled(inputLength, -1, growable: false);
+  final chain = List<int>.filled(input.length, -1, growable: false);
 
   int insert(int pos) {
-    final seq = _readUint32LE(src, pos);
+    final seq = _readUint32LE(input, pos);
     final h = _hash(seq, hashShift);
     final ref = hashTable[h];
     chain[pos] = ref;
@@ -38,10 +61,18 @@ Uint8List lz4HcBlockCompress(
     return ref;
   }
 
-  var anchor = 0;
-  var i = 0;
+  if (dictLength != 0) {
+    for (var pos = 0; pos <= dictLength - minMatch; pos++) {
+      insert(pos);
+    }
+  }
 
-  while (i <= inputLength - minMatch) {
+  var anchor = dictLength;
+  var i = dictLength;
+
+  final totalLength = input.length;
+
+  while (i <= totalLength - minMatch) {
     var candidate = insert(i);
 
     var bestLen = 0;
@@ -56,16 +87,16 @@ Uint8List lz4HcBlockCompress(
         continue;
       }
 
-      if (_readUint32LE(src, candidate) == _readUint32LE(src, i)) {
+      if (_readUint32LE(input, candidate) == _readUint32LE(input, i)) {
         var matchLen = minMatch;
-        while (i + matchLen < inputLength &&
-            src[i + matchLen] == src[candidate + matchLen]) {
+        while (i + matchLen < totalLength &&
+            input[i + matchLen] == input[candidate + matchLen]) {
           matchLen++;
         }
         if (matchLen > bestLen) {
           bestLen = matchLen;
           bestRef = candidate;
-          if (i + bestLen == inputLength) {
+          if (i + bestLen == totalLength) {
             break;
           }
         }
@@ -81,22 +112,22 @@ Uint8List lz4HcBlockCompress(
 
       while (matchStart > anchor &&
           refStart > 0 &&
-          src[matchStart - 1] == src[refStart - 1]) {
+          input[matchStart - 1] == input[refStart - 1]) {
         matchStart--;
         refStart--;
         bestLen++;
       }
 
       var matchLen = bestLen;
-      while (matchStart + matchLen < inputLength &&
-          src[matchStart + matchLen] == src[refStart + matchLen]) {
+      while (matchStart + matchLen < totalLength &&
+          input[matchStart + matchLen] == input[refStart + matchLen]) {
         matchLen++;
       }
 
       final literalLength = matchStart - anchor;
       _writeSequence(
         writer,
-        src,
+        input,
         anchor,
         literalLength,
         matchStart - refStart,
@@ -106,7 +137,7 @@ Uint8List lz4HcBlockCompress(
       i = matchStart + matchLen;
       anchor = i;
 
-      if (i > inputLength - minMatch) {
+      if (i > totalLength - minMatch) {
         break;
       }
 
@@ -123,9 +154,9 @@ Uint8List lz4HcBlockCompress(
     i++;
   }
 
-  final lastLiterals = inputLength - anchor;
+  final lastLiterals = totalLength - anchor;
   if (lastLiterals != 0) {
-    _writeLastLiterals(writer, src, anchor, lastLiterals);
+    _writeLastLiterals(writer, input, anchor, lastLiterals);
   }
 
   return writer.toBytes();
