@@ -105,16 +105,16 @@ StreamTransformer<List<int>, List<int>> lz4FrameEncoderTransformerWithOptions({
       }
     }
 
+    if (contentSize != null && totalIn != contentSize) {
+      throw Lz4FormatException('contentSize does not match stream length');
+    }
+
     yield Uint8List(4);
 
     if (options.contentChecksum) {
       final out = ByteWriter(initialCapacity: 4);
       out.writeUint32LE(contentHasher!.digest());
       yield out.toBytes();
-    }
-
-    if (contentSize != null && totalIn != contentSize) {
-      throw Lz4FormatException('contentSize does not match stream length');
     }
   });
 }
