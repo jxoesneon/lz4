@@ -21,7 +21,7 @@ Implemented:
 - Web-safe core (no `dart:io` in library code)
 - Strict, bounds-safe decoding with deterministic errors
 - Streaming-friendly APIs with output limits
-- Compatibility with LZ4 frame format (current) and best-effort legacy frame decode
+- Compatibility with LZ4 frame format (current)
 
 ## Limitations
 
@@ -33,6 +33,24 @@ Implemented:
 - Always set a reasonable `maxOutputBytes` when decoding frames (`lz4FrameDecode` / `lz4FrameDecoder`) to mitigate decompression bombs.
 - Use `blockChecksum` and/or `contentChecksum` when encoding if you want corruption detection. These checksums are **not** cryptographic authentication.
 - For block decompression (`lz4Decompress`), `decompressedSize` must be known and trusted/validated.
+
+## Interop / compatibility
+
+Tested against the reference `lz4` CLI (`lz4 v1.10.0`) via embedded decode vectors and a CLI decode test.
+
+| Feature | Decode | Encode | Notes |
+| --- | --- | --- | --- |
+| Current LZ4 frame (magic `0x184D2204`) | Yes | Yes | |
+| Concatenated frames | Yes | N/A | You can concatenate multiple encoded frames yourself. |
+| Skippable frames (magic `0x184D2A5x`) | Yes | No | Skippable frames are ignored on decode. |
+| Independent blocks (`blockIndependence: true`) | Yes | Yes | Default. |
+| Dependent blocks (`blockIndependence: false`) | Yes | Yes | Uses a 64KiB history window. |
+| Block checksum | Yes | Yes | |
+| Content checksum | Yes | Yes | |
+| Content size (<= 4GiB) | Yes | Yes | |
+| Content size (> 4GiB) | No | No | Decoding fails fast. |
+| Dictionary ID (`dictId`) | No | No | Not supported (fails fast). |
+| Legacy `-l` format | No | No | Not currently supported. |
 
 ## Roadmap (high level)
 
