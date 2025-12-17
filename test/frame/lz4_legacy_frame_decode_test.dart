@@ -4,9 +4,7 @@ import 'package:dart_lz4/dart_lz4.dart';
 import 'package:dart_lz4/src/internal/lz4_exception.dart';
 import 'package:test/test.dart';
 
-typedef _Bytes = List<int>;
-
-_Bytes _u32le(int v) =>
+List<int> _u32le(int v) =>
     <int>[v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff, (v >> 24) & 0xff];
 
 Uint8List _buildLegacyFrame(List<Uint8List> compressedBlocks) {
