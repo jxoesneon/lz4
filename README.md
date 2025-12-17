@@ -50,7 +50,7 @@ Tested against the reference `lz4` CLI (`lz4 v1.10.0`) via embedded decode vecto
 | Content size (<= 4GiB) | Yes | Yes | |
 | Content size (> 4GiB) | No | No | Decoding fails fast. |
 | Dictionary ID (`dictId`) | No | No | Not supported (fails fast). |
-| Legacy `-l` format | No | No | Not currently supported. |
+| Legacy `-l` format | Yes | No | Decode supports legacy frame magic `0x184C2102`. |
 
 ## Roadmap (high level)
 
