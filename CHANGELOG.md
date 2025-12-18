@@ -6,7 +6,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
-## [0.0.8-dev]
+## [0.0.8] - 2025-12-18
 
 - **Performance**: Significant reduction in allocations for LZ4 frame encoding (sync and streaming) by reusing internal buffers.
 - **Performance**: Optimized `xxHash32` calculation using typed data views for ~1.5x speedup on aligned data.
