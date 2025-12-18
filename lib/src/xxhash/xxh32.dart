@@ -81,39 +81,15 @@ final class Xxh32 {
     }
 
     final limit = p + length - 16;
-
-    // Optimization: Use Uint32List view if aligned and Little Endian
-    if (Endian.host == Endian.little && (input.offsetInBytes + p) % 4 == 0) {
-      final u32 = input.buffer.asUint32List(input.offsetInBytes + p);
-      var idx = 0;
-      while (p <= limit) {
-        _v1 = _round(_v1, u32[idx]);
-        p += 4;
-        idx++;
-
-        _v2 = _round(_v2, u32[idx]);
-        p += 4;
-        idx++;
-
-        _v3 = _round(_v3, u32[idx]);
-        p += 4;
-        idx++;
-
-        _v4 = _round(_v4, u32[idx]);
-        p += 4;
-        idx++;
-      }
-    } else {
-      while (p <= limit) {
-        _v1 = _round(_v1, _readU32LE(input, p));
-        p += 4;
-        _v2 = _round(_v2, _readU32LE(input, p));
-        p += 4;
-        _v3 = _round(_v3, _readU32LE(input, p));
-        p += 4;
-        _v4 = _round(_v4, _readU32LE(input, p));
-        p += 4;
-      }
+    while (p <= limit) {
+      _v1 = _round(_v1, _readU32LE(input, p));
+      p += 4;
+      _v2 = _round(_v2, _readU32LE(input, p));
+      p += 4;
+      _v3 = _round(_v3, _readU32LE(input, p));
+      p += 4;
+      _v4 = _round(_v4, _readU32LE(input, p));
+      p += 4;
     }
 
     final remaining = (e - p);
@@ -174,15 +150,39 @@ int xxh32(Uint8List input, {int seed = 0}) {
     var v4 = (seed - _prime32_1).toUnsigned(32);
 
     final limit = len - 16;
-    while (p <= limit) {
-      v1 = _round(v1, _readU32LE(input, p));
-      p += 4;
-      v2 = _round(v2, _readU32LE(input, p));
-      p += 4;
-      v3 = _round(v3, _readU32LE(input, p));
-      p += 4;
-      v4 = _round(v4, _readU32LE(input, p));
-      p += 4;
+
+    // Optimization: Use Uint32List view if aligned and Little Endian
+    if (Endian.host == Endian.little && (input.offsetInBytes + p) % 4 == 0) {
+      final u32 = input.buffer.asUint32List(input.offsetInBytes + p);
+      var idx = 0;
+      while (p <= limit) {
+        v1 = _round(v1, u32[idx]);
+        p += 4;
+        idx++;
+
+        v2 = _round(v2, u32[idx]);
+        p += 4;
+        idx++;
+
+        v3 = _round(v3, u32[idx]);
+        p += 4;
+        idx++;
+
+        v4 = _round(v4, u32[idx]);
+        p += 4;
+        idx++;
+      }
+    } else {
+      while (p <= limit) {
+        v1 = _round(v1, _readU32LE(input, p));
+        p += 4;
+        v2 = _round(v2, _readU32LE(input, p));
+        p += 4;
+        v3 = _round(v3, _readU32LE(input, p));
+        p += 4;
+        v4 = _round(v4, _readU32LE(input, p));
+        p += 4;
+      }
     }
 
     h32 = (_rotl32(v1, 1) + _rotl32(v2, 7) + _rotl32(v3, 12) + _rotl32(v4, 18))

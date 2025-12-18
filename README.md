@@ -170,6 +170,21 @@ final encodedChunks = byteChunksStream.transform(
 );
 ```
 
+## CLI Example
+
+A comprehensive command-line interface example is available in `example/lz4_cli.dart`. It supports compression, decompression, and frame inspection.
+
+```sh
+# Compress a file
+dart run example/lz4_cli.dart compress input.txt output.lz4
+
+# Decompress a file
+dart run example/lz4_cli.dart decompress output.lz4 recovered.txt
+
+# Inspect frame header
+dart run example/lz4_cli.dart info output.lz4
+```
+
 ## Benchmarks
 
 Run:
