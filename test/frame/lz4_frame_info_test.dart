@@ -14,7 +14,7 @@ void main() {
       // HC: xxh32(60 40) >> 8 & 0xFF
 
       // Calculate valid HC
-      // xxh32([0x60, 0x40]) -> 
+      // xxh32([0x60, 0x40]) ->
       // Manual check or let the code run.
       // Wait, I need a valid frame.
       // Let's use lz4FrameEncode to generate one.
