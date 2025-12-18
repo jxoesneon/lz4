@@ -51,6 +51,33 @@ final class ByteReader {
     return (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)) & 0xffffffff;
   }
 
+  int readUint64LE() {
+    _require(8);
+    final b0 = _bytes[_offset++];
+    final b1 = _bytes[_offset++];
+    final b2 = _bytes[_offset++];
+    final b3 = _bytes[_offset++];
+    final b4 = _bytes[_offset++];
+    final b5 = _bytes[_offset++];
+    final b6 = _bytes[_offset++];
+    final b7 = _bytes[_offset++];
+
+    final low = (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)) & 0xffffffff;
+    final high = (b4 | (b5 << 8) | (b6 << 16) | (b7 << 24)) & 0xffffffff;
+
+    // Use arithmetic to combine high and low to support > 2^32 on Web (up to 2^53).
+    // On VM, this works for the full signed 64-bit range.
+    final value = (high * 4294967296) + low;
+
+    // If the value is negative, it means it exceeded the positive range of Dart's int
+    // (63 bits on VM).
+    if (value < 0) {
+      throw const Lz4FormatException('Integer overflow');
+    }
+
+    return value;
+  }
+
   Uint8List readBytesView(int count) {
     if (count < 0) {
       throw RangeError.value(count, 'count');

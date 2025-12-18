@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:dart_lz4/dart_lz4.dart';
-import 'package:dart_lz4/src/internal/lz4_exception.dart';
 import 'package:dart_lz4/src/xxhash/xxh32.dart';
 import 'package:test/test.dart';
 
@@ -113,7 +112,7 @@ void main() {
         isA<Lz4UnsupportedFeatureException>().having(
           (e) => e.message,
           'message',
-          'Dictionary ID is not supported',
+          'Dictionary ID present but no dictionary resolver provided',
         ),
       ),
     );

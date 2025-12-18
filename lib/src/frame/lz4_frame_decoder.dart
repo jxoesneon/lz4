@@ -5,6 +5,7 @@ import '../internal/byte_reader.dart';
 import '../internal/byte_writer.dart';
 import '../internal/lz4_exception.dart';
 import '../xxhash/xxh32.dart';
+import 'lz4_frame_options.dart';
 
 const _lz4FrameMagic = 0x184D2204;
 const _lz4SkippableMagicBase = 0x184D2A50;
@@ -14,8 +15,13 @@ const _lz4LegacyFrameMagic = 0x184C2102;
 Uint8List lz4FrameDecodeBytes(
   Uint8List src, {
   int? maxOutputBytes,
+  Lz4DictionaryResolver? dictionaryResolver,
 }) {
-  return _Lz4FrameDecoder(src, maxOutputBytes: maxOutputBytes).decodeAll();
+  return _Lz4FrameDecoder(
+    src,
+    maxOutputBytes: maxOutputBytes,
+    dictionaryResolver: dictionaryResolver,
+  ).decodeAll();
 }
 
 final class _Lz4FrameDecoder {
@@ -23,11 +29,18 @@ final class _Lz4FrameDecoder {
   final ByteReader _reader;
   final ByteWriter _out;
   final int? _maxOutputBytes;
+  final Lz4DictionaryResolver? _dictionaryResolver;
 
-  _Lz4FrameDecoder(this._src, {int? maxOutputBytes})
-      : _reader = ByteReader(_src),
+  Uint8List? _dict;
+
+  _Lz4FrameDecoder(
+    this._src, {
+    int? maxOutputBytes,
+    Lz4DictionaryResolver? dictionaryResolver,
+  })  : _reader = ByteReader(_src),
         _out = ByteWriter(maxLength: maxOutputBytes),
-        _maxOutputBytes = maxOutputBytes;
+        _maxOutputBytes = maxOutputBytes,
+        _dictionaryResolver = dictionaryResolver;
 
   Uint8List decodeAll() {
     while (!_reader.isEOF) {
@@ -188,7 +201,7 @@ final class _Lz4FrameDecoder {
       if (_reader.remaining < 8) {
         throw const Lz4FormatException('Unexpected end of input');
       }
-      contentSize = _readUint64LEAsInt(_reader);
+      contentSize = _reader.readUint64LE();
     }
 
     int? dictId;
@@ -210,8 +223,16 @@ final class _Lz4FrameDecoder {
     }
 
     if (dictId != null) {
-      throw const Lz4UnsupportedFeatureException(
-          'Dictionary ID is not supported');
+      final resolver = _dictionaryResolver;
+      if (resolver == null) {
+        throw const Lz4UnsupportedFeatureException(
+            'Dictionary ID present but no dictionary resolver provided');
+      }
+      final dict = resolver(dictId);
+      if (dict == null) {
+        throw Lz4Exception('Dictionary not found for ID: $dictId');
+      }
+      _dict = dict;
     }
 
     while (true) {
@@ -250,10 +271,29 @@ final class _Lz4FrameDecoder {
       }
 
       if (blockIndependence) {
-        final tmp = ByteWriter(maxLength: blockMaxSize);
-        lz4BlockDecompressInto(blockData, tmp);
-        final decoded = tmp.bytesView();
-        frameOut.writeBytesView(decoded, 0, decoded.length);
+        final dict = _dict;
+        if (dict != null) {
+          // Independent blocks with dictionary:
+          // The dictionary is used as history for THIS block only.
+          const historyWindow = 64 * 1024;
+          final dictLen = dict.length;
+          final effectiveDictLen =
+              dictLen > historyWindow ? historyWindow : dictLen;
+          final effectiveDictStart = dictLen - effectiveDictLen;
+
+          final tmp = ByteWriter(maxLength: effectiveDictLen + blockMaxSize);
+          tmp.writeBytesView(dict, effectiveDictStart, dictLen);
+          lz4BlockDecompressInto(blockData, tmp);
+          final decodedFull = tmp.bytesView();
+          // Skip the dictionary part
+          final decoded = Uint8List.sublistView(decodedFull, effectiveDictLen);
+          frameOut.writeBytesView(decoded, 0, decoded.length);
+        } else {
+          final tmp = ByteWriter(maxLength: blockMaxSize);
+          lz4BlockDecompressInto(blockData, tmp);
+          final decoded = tmp.bytesView();
+          frameOut.writeBytesView(decoded, 0, decoded.length);
+        }
       } else {
         _decodeDependentBlock(
           blockData,
@@ -289,27 +329,56 @@ final class _Lz4FrameDecoder {
     required int blockMaxSize,
   }) {
     const historyWindow = 64 * 1024;
-    final historyLen =
-        frameOut.length < historyWindow ? frameOut.length : historyWindow;
 
-    final historyStart = frameOut.length - historyLen;
-    final history = Uint8List.sublistView(
-        frameOut.bytesView(), historyStart, frameOut.length);
+    // Calculate available history from output
+    final outLen = frameOut.length;
+    final outHistoryLen = outLen < historyWindow ? outLen : historyWindow;
 
-    final blockWriter = ByteWriter(maxLength: historyLen + blockMaxSize);
-    if (historyLen != 0) {
-      blockWriter.writeBytesView(history, 0, history.length);
+    final ByteWriter blockWriter;
+    int prefixLen;
+
+    final dict = _dict;
+    // If output history is insufficient and we have a dictionary, use it.
+    if (outHistoryLen < historyWindow && dict != null) {
+      // We need to fill the gap with dictionary data.
+      final needed = historyWindow - outHistoryLen;
+      final dictLen = dict.length;
+      final copyLen = dictLen < needed ? dictLen : needed;
+      final copyStart = dictLen - copyLen;
+
+      prefixLen = copyLen + outHistoryLen;
+      blockWriter = ByteWriter(maxLength: prefixLen + blockMaxSize);
+
+      // Write dictionary part
+      blockWriter.writeBytesView(dict, copyStart, dictLen);
+
+      // Write output history part
+      final outHistoryStart = outLen - outHistoryLen;
+      final outHistory =
+          Uint8List.sublistView(frameOut.bytesView(), outHistoryStart, outLen);
+      blockWriter.writeBytesView(outHistory, 0, outHistory.length);
+    } else {
+      // Standard dependent block (or sufficient history)
+      prefixLen = outHistoryLen;
+      blockWriter = ByteWriter(maxLength: prefixLen + blockMaxSize);
+
+      final outHistoryStart = outLen - outHistoryLen;
+      final outHistory =
+          Uint8List.sublistView(frameOut.bytesView(), outHistoryStart, outLen);
+      if (prefixLen > 0) {
+        blockWriter.writeBytesView(outHistory, 0, outHistory.length);
+      }
     }
 
     lz4BlockDecompressInto(blockData, blockWriter);
 
-    final produced = blockWriter.length - historyLen;
+    final produced = blockWriter.length - prefixLen;
     if (produced > blockMaxSize) {
       throw const Lz4CorruptDataException('Block size exceeds maximum');
     }
 
     final decoded = blockWriter.bytesView();
-    frameOut.writeBytesView(decoded, historyLen, decoded.length);
+    frameOut.writeBytesView(decoded, prefixLen, decoded.length);
   }
 }
 
@@ -326,14 +395,4 @@ int _decodeBlockMaxSize(int id) {
     default:
       throw const Lz4FormatException('Invalid block maximum size');
   }
-}
-
-int _readUint64LEAsInt(ByteReader reader) {
-  final low = reader.readUint32LE();
-  final high = reader.readUint32LE();
-  if (high != 0) {
-    throw const Lz4UnsupportedFeatureException(
-        'Content size > 4GiB is not supported');
-  }
-  return low;
 }

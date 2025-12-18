@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:dart_lz4/dart_lz4.dart';
 import 'package:dart_lz4/src/block/lz4_block_decoder.dart';
 import 'package:dart_lz4/src/internal/byte_writer.dart';
-import 'package:dart_lz4/src/internal/lz4_exception.dart';
 import 'package:test/test.dart';
 
 Uint8List _randomBytes(Random r, int length) {

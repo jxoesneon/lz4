@@ -12,10 +12,18 @@ library dart_lz4;
 import 'dart:async';
 import 'dart:typed_data';
 
-export 'src/frame/lz4_frame_options.dart'
-    show Lz4FrameOptions, Lz4FrameBlockSize, Lz4FrameCompression;
+import 'src/frame/lz4_frame_options.dart'
+    show Lz4FrameOptions, Lz4DictionaryResolver;
 
-import 'src/frame/lz4_frame_options.dart' show Lz4FrameOptions;
+export 'src/internal/lz4_exception.dart';
+export 'src/block/lz4_sized_block.dart';
+export 'src/frame/lz4_frame_info.dart' show Lz4FrameInfo, lz4FrameInfo;
+export 'src/frame/lz4_frame_options.dart'
+    show
+        Lz4FrameOptions,
+        Lz4FrameBlockSize,
+        Lz4FrameCompression,
+        Lz4DictionaryResolver;
 
 import 'src/block/lz4_block_decoder.dart';
 import 'src/block/lz4_block_encoder.dart';
@@ -96,11 +104,19 @@ Uint8List lz4FrameEncodeWithOptions(
 ///
 /// If [maxOutputBytes] is provided, decoding will stop with an [Exception] if
 /// the decompressed output would exceed that limit.
+///
+/// If the frame requires a dictionary (indicated by a dictionary ID),
+/// [dictionaryResolver] must be provided to look up the dictionary bytes.
 Uint8List lz4FrameDecode(
   Uint8List src, {
   int? maxOutputBytes,
+  Lz4DictionaryResolver? dictionaryResolver,
 }) {
-  return lz4FrameDecodeBytes(src, maxOutputBytes: maxOutputBytes);
+  return lz4FrameDecodeBytes(
+    src,
+    maxOutputBytes: maxOutputBytes,
+    dictionaryResolver: dictionaryResolver,
+  );
 }
 
 /// Returns a `StreamTransformer` that decodes LZ4 frames from a byte stream.
@@ -109,10 +125,17 @@ Uint8List lz4FrameDecode(
 ///
 /// If [maxOutputBytes] is provided, decoding will stop with an [Exception] if
 /// the decompressed output would exceed that limit.
+///
+/// If the frame requires a dictionary (indicated by a dictionary ID),
+/// [dictionaryResolver] must be provided to look up the dictionary bytes.
 StreamTransformer<List<int>, List<int>> lz4FrameDecoder({
   int? maxOutputBytes,
+  Lz4DictionaryResolver? dictionaryResolver,
 }) {
-  return lz4FrameDecoderTransformer(maxOutputBytes: maxOutputBytes);
+  return lz4FrameDecoderTransformer(
+    maxOutputBytes: maxOutputBytes,
+    dictionaryResolver: dictionaryResolver,
+  );
 }
 
 /// Returns a `StreamTransformer` that encodes bytes into a single LZ4 frame.
