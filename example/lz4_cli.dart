@@ -55,7 +55,7 @@ Future<void> _compress(String inputPath, String outputPath) async {
   final stopwatch = Stopwatch()..start();
 
   final inputSize = await inFile.length();
-  
+
   // Use options to add a content checksum and content size for better integrity
   final options = Lz4FrameOptions(
     contentChecksum: true,
@@ -69,11 +69,11 @@ Future<void> _compress(String inputPath, String outputPath) async {
         .openRead()
         .transform(lz4FrameEncoderWithOptions(options: options))
         .pipe(sink);
-    
+
     stopwatch.stop();
     final outputSize = await outFile.length();
     final ratio = outputSize / inputSize;
-    
+
     print('Done in ${stopwatch.elapsedMilliseconds}ms.');
     print('Original size: $inputSize bytes');
     print('Compressed size: $outputSize bytes');
@@ -101,11 +101,8 @@ Future<void> _decompress(String inputPath, String outputPath) async {
 
   try {
     final sink = outFile.openWrite();
-    await inFile
-        .openRead()
-        .transform(lz4FrameDecoder())
-        .pipe(sink);
-    
+    await inFile.openRead().transform(lz4FrameDecoder()).pipe(sink);
+
     stopwatch.stop();
     print('Done in ${stopwatch.elapsedMilliseconds}ms.');
   } catch (e) {
@@ -132,19 +129,19 @@ Future<void> _info(String inputPath) async {
     // Note: openRead might return a chunk smaller than requested if file is small,
     // or a list of chunks. Stream.first gets the first chunk.
     // We assume the header fits in the first chunk read.
-    
+
     // Since lz4FrameInfo is synchronous and expects bytes, we pass the chunk.
     final info = lz4FrameInfo(Uint8List.fromList(headerBytes));
-    
+
     print('File: $inputPath');
     print('LZ4 Frame Info:');
     print('  Block Independence: ${info.blockIndependence}');
     print('  Block Checksum: ${info.blockChecksum}');
     print('  Content Checksum: ${info.contentChecksum}');
     print('  Block Max Size: ${_formatSize(info.blockMaxSize)}');
-    print('  Content Size: ${info.contentSize != null ? _formatSize(info.contentSize!) : "Unknown"}');
+    print(
+        '  Content Size: ${info.contentSize != null ? _formatSize(info.contentSize!) : "Unknown"}');
     print('  Dictionary ID: ${info.dictId ?? "None"}');
-    
   } catch (e) {
     print('Error reading frame info: $e');
     exit(1);

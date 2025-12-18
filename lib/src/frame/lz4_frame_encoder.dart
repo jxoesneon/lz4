@@ -128,8 +128,8 @@ Uint8List lz4FrameEncodeBytesWithOptions(
         // where payload was compressed or chunk.
         // So yes, checksum of what was written.
         // We can access it via writer view.
-        final payloadView =
-            Uint8List.sublistView(writer.bytesView(), payloadStart, writer.length);
+        final payloadView = Uint8List.sublistView(
+            writer.bytesView(), payloadStart, writer.length);
         writer.writeUint32LE(xxh32(payloadView, seed: 0));
       }
     } else {
