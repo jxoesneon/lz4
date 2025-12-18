@@ -1,4 +1,11 @@
+import 'dart:typed_data';
+
 import '../hc/lz4_hc_options.dart';
+
+/// Callback to resolve a dictionary by its ID.
+///
+/// Returns the dictionary bytes, or `null` if the dictionary is not found.
+typedef Lz4DictionaryResolver = Uint8List? Function(int dictId);
 
 /// Maximum LZ4 frame block size.
 ///

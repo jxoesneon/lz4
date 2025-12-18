@@ -108,6 +108,39 @@ final decoded = lz4FrameDecode(frame);
 Dependent blocks are supported by setting `blockIndependence: false`. When enabled,
 blocks may reference up to 64KiB of history from prior blocks.
 
+### Frame Inspection
+
+Inspect a frame header without decoding the payload:
+
+```dart
+final info = lz4FrameInfo(frameBytes);
+print('Content Size: ${info.contentSize}');
+print('Dictionary ID: ${info.dictId}');
+```
+
+### Dictionary Support
+
+To decode frames that use a preset dictionary (identified by `dictId`):
+
+```dart
+final decoded = lz4FrameDecode(
+  frameBytes,
+  dictionaryResolver: (dictId) {
+    if (dictId == 0x123456) return myDictionaryBytes;
+    return null; // Dictionary not found
+  },
+);
+```
+
+### Sized Blocks
+
+Simple helper for block compression with prepended 4-byte length header:
+
+```dart
+final compressed = lz4CompressWithSize(src);
+final decoded = lz4DecompressWithSize(compressed);
+```
+
 ### Streaming frame decode
 
 ```dart
