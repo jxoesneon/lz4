@@ -25,8 +25,8 @@ Implemented:
 
 ## Limitations
 
-- **Content sizes > 4GiB**: Supported (via 64-bit headers).
-- **Dictionary ID**: Supported (via `dictionaryResolver`).
+- **Encoding** content sizes > 4GiB is not supported (decoding is supported).
+- **Encoding** with Dictionary ID is not supported (decoding is supported).
 
 ## Security / untrusted input
 
@@ -48,8 +48,8 @@ Tested against the reference `lz4` CLI (`lz4 v1.10.0`) via embedded decode vecto
 | Block checksum | Yes | Yes | |
 | Content checksum | Yes | Yes | |
 | Content size (<= 4GiB) | Yes | Yes | |
-| Content size (> 4GiB) | Yes | Yes | Supported. |
-| Dictionary ID (`dictId`) | Yes | No | Decoding supported via `dictionaryResolver`. |
+| Content size (> 4GiB) | Yes | No | Decoding is supported. |
+| Dictionary ID (`dictId`) | Yes | No | Decoding is supported. |
 | Legacy `-l` format | Yes | No | Decode supports legacy frame magic `0x184C2102`. |
 
 ## Roadmap (high level)
