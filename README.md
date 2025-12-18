@@ -48,8 +48,8 @@ Tested against the reference `lz4` CLI (`lz4 v1.10.0`) via embedded decode vecto
 | Block checksum | Yes | Yes | |
 | Content checksum | Yes | Yes | |
 | Content size (<= 4GiB) | Yes | Yes | |
-| Content size (> 4GiB) | No | No | Decoding fails fast. |
-| Dictionary ID (`dictId`) | No | No | Not supported (fails fast). |
+| Content size (> 4GiB) | Yes | Yes | Supported. |
+| Dictionary ID (`dictId`) | Yes | No | Decoding supported via `dictionaryResolver`. |
 | Legacy `-l` format | Yes | No | Decode supports legacy frame magic `0x184C2102`. |
 
 ## Roadmap (high level)
@@ -78,7 +78,11 @@ final decoded = lz4Decompress(compressed, decompressedSize: src.length);
 ### LZ4HC
 
 ```dart
-final compressed = lz4Compress(src, level: Lz4CompressionLevel.hc);
+final compressed = lz4Compress(
+  src,
+  level: Lz4CompressionLevel.hc,
+  hcOptions: Lz4HcOptions(maxSearchDepth: 64), // Optional tuning
+);
 ```
 
 ### Frame
@@ -168,21 +172,6 @@ final encodedChunks = byteChunksStream.transform(
     ),
   ),
 );
-```
-
-## CLI Example
-
-A comprehensive command-line interface example is available in `example/lz4_cli.dart`. It supports compression, decompression, and frame inspection.
-
-```sh
-# Compress a file
-dart run example/lz4_cli.dart compress input.txt output.lz4
-
-# Decompress a file
-dart run example/lz4_cli.dart decompress output.lz4 recovered.txt
-
-# Inspect frame header
-dart run example/lz4_cli.dart info output.lz4
 ```
 
 ## Benchmarks
