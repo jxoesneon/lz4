@@ -93,8 +93,7 @@ Uint8List lz4Decompress(
 /// [acceleration] is forwarded to the underlying fast block compressor.
 ///
 /// If [dictionary] is provided, it will be used to initialize the compression
-/// context. If [options] specifies a `dictId`, it is recommended to provide
-/// the corresponding [dictionary] bytes.
+/// context.
 Uint8List lz4FrameEncode(
   Uint8List src, {
   int acceleration = 1,

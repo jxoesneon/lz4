@@ -49,7 +49,8 @@ Uint8List lz4FrameEncodeBytesWithOptions(
   final contentSize = options.contentSize;
   if (contentSize != null) {
     writer.writeUint32LE(contentSize & 0xFFFFFFFF);
-    writer.writeUint32LE((contentSize >> 32) & 0xFFFFFFFF);
+    // Use integer division instead of shift for JS compatibility
+    writer.writeUint32LE((contentSize ~/ 4294967296) & 0xFFFFFFFF);
   }
 
   final dictId = options.dictId;
