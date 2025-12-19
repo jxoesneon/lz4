@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+- **Feature**: Added `lz4SkippableEncode` for encoding skippable frames (user-defined metadata).
+
 ## [0.0.9] - 2025-12-18
 
 - **Feature**: Added support for encoding LZ4 frames with a dictionary (`dictId`). This allows for significantly better compression ratios on small payloads when sharing a dictionary.

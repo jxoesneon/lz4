@@ -183,3 +183,27 @@ StreamTransformer<List<int>, List<int>> lz4FrameEncoderWithOptions({
   return lz4FrameEncoderTransformerWithOptions(
       options: options, dictionary: dictionary);
 }
+
+/// Encodes a skippable frame containing [data].
+///
+/// Skippable frames are used to embed user-defined metadata within an LZ4
+/// stream. Decoders that don't recognize the frame type will skip over it.
+///
+/// The [index] (0–15) selects which skippable magic number to use:
+/// `0x184D2A50` through `0x184D2A5F`. Different indices can be used to
+/// distinguish different types of metadata.
+///
+/// The [data] can be up to 4 GiB in size (2^32 - 1 bytes).
+///
+/// Returns the encoded skippable frame (8 bytes header + data).
+///
+/// Example:
+/// ```dart
+/// final metadata = Uint8List.fromList(utf8.encode('{"version": 1}'));
+/// final skippable = lz4SkippableEncode(metadata, index: 0);
+/// // Concatenate with a regular frame:
+/// final combined = Uint8List.fromList([...skippable, ...lz4FrameEncode(data)]);
+/// ```
+Uint8List lz4SkippableEncode(Uint8List data, {int index = 0}) {
+  return lz4SkippableFrameEncode(data, index: index);
+}

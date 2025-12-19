@@ -8,6 +8,40 @@ import '../xxhash/xxh32.dart';
 import 'lz4_frame_options.dart';
 
 const _lz4FrameMagic = 0x184D2204;
+const _lz4SkippableMagicBase = 0x184D2A50;
+
+/// Encodes a skippable frame containing [data].
+///
+/// Skippable frames are used to embed user-defined metadata within an LZ4
+/// stream. Decoders that don't recognize the frame type will skip over it.
+///
+/// The [index] (0–15) selects which skippable magic number to use:
+/// `0x184D2A50` through `0x184D2A5F`. Different indices can be used to
+/// distinguish different types of metadata.
+///
+/// The [data] can be up to 4 GiB in size (2^32 - 1 bytes).
+///
+/// Returns the encoded skippable frame (8 bytes header + data).
+Uint8List lz4SkippableFrameEncode(Uint8List data, {int index = 0}) {
+  if (index < 0 || index > 15) {
+    throw RangeError.range(index, 0, 15, 'index');
+  }
+  if (data.length > 0xFFFFFFFF) {
+    throw RangeError.value(data.length, 'data.length', 'Exceeds 4 GiB limit');
+  }
+
+  final result = Uint8List(8 + data.length);
+  final view = ByteData.sublistView(result);
+
+  // Magic number
+  view.setUint32(0, _lz4SkippableMagicBase + index, Endian.little);
+  // Size
+  view.setUint32(4, data.length, Endian.little);
+  // Data
+  result.setRange(8, result.length, data);
+
+  return result;
+}
 
 Uint8List lz4FrameEncodeBytes(
   Uint8List src, {
