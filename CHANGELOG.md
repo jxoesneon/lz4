@@ -6,9 +6,12 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-12-19
+
 - **Feature**: Added `lz4SkippableEncode` for encoding skippable frames (user-defined metadata).
 - **Feature**: Added `lz4LegacyEncode` for encoding legacy LZ4 frames (`lz4 -l` format).
 - **Complete**: All LZ4 frame formats now have full encode/decode support.
+- **Milestone**: First stable release with 100% LZ4 frame specification coverage.
 
 ## [0.0.9] - 2025-12-18
 
