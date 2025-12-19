@@ -8,6 +8,85 @@ import '../xxhash/xxh32.dart';
 import 'lz4_frame_options.dart';
 
 const _lz4FrameMagic = 0x184D2204;
+const _lz4SkippableMagicBase = 0x184D2A50;
+const _lz4LegacyFrameMagic = 0x184C2102;
+const _legacyBlockMaxSize = 8 * 1024 * 1024; // 8 MiB
+
+/// Encodes a skippable frame containing [data].
+///
+/// Skippable frames are used to embed user-defined metadata within an LZ4
+/// stream. Decoders that don't recognize the frame type will skip over it.
+///
+/// The [index] (0–15) selects which skippable magic number to use:
+/// `0x184D2A50` through `0x184D2A5F`. Different indices can be used to
+/// distinguish different types of metadata.
+///
+/// The [data] can be up to 4 GiB in size (2^32 - 1 bytes).
+///
+/// Returns the encoded skippable frame (8 bytes header + data).
+Uint8List lz4SkippableFrameEncode(Uint8List data, {int index = 0}) {
+  if (index < 0 || index > 15) {
+    throw RangeError.range(index, 0, 15, 'index');
+  }
+  if (data.length > 0xFFFFFFFF) {
+    throw RangeError.value(data.length, 'data.length', 'Exceeds 4 GiB limit');
+  }
+
+  final result = Uint8List(8 + data.length);
+  final view = ByteData.sublistView(result);
+
+  // Magic number
+  view.setUint32(0, _lz4SkippableMagicBase + index, Endian.little);
+  // Size
+  view.setUint32(4, data.length, Endian.little);
+  // Data
+  result.setRange(8, result.length, data);
+
+  return result;
+}
+
+/// Encodes [src] as a legacy LZ4 frame (magic `0x184C2102`).
+///
+/// Legacy frames use 8 MiB blocks without checksums or content size headers.
+/// This format is produced by `lz4 -l` and is rarely needed for new data.
+/// Prefer the modern frame format ([lz4FrameEncodeBytes]) for new applications.
+///
+/// [acceleration] controls the speed/ratio tradeoff (higher = faster, lower ratio).
+Uint8List lz4LegacyFrameEncode(Uint8List src, {int acceleration = 1}) {
+  final writer = ByteWriter(initialCapacity: src.length + 64);
+
+  // Write legacy magic
+  writer.writeUint32LE(_lz4LegacyFrameMagic);
+
+  var offset = 0;
+  while (offset < src.length) {
+    var end = offset + _legacyBlockMaxSize;
+    if (end > src.length) {
+      end = src.length;
+    }
+
+    final chunk = Uint8List.sublistView(src, offset, end);
+
+    // Compress block
+    final compressed = lz4BlockCompress(chunk, acceleration: acceleration);
+
+    // Legacy format always uses compressed data (no uncompressed fallback in original spec)
+    // However, we should still store uncompressed if compression doesn't help
+    if (compressed.length < chunk.length) {
+      writer.writeUint32LE(compressed.length);
+      writer.writeBytes(compressed);
+    } else {
+      // Store uncompressed - legacy decoders expect this to still decompress
+      // but since LZ4 block format handles literals, just write the compressed version
+      writer.writeUint32LE(compressed.length);
+      writer.writeBytes(compressed);
+    }
+
+    offset = end;
+  }
+
+  return writer.toBytes();
+}
 
 Uint8List lz4FrameEncodeBytes(
   Uint8List src, {

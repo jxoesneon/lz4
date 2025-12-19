@@ -183,3 +183,38 @@ StreamTransformer<List<int>, List<int>> lz4FrameEncoderWithOptions({
   return lz4FrameEncoderTransformerWithOptions(
       options: options, dictionary: dictionary);
 }
+
+/// Encodes a skippable frame containing [data].
+///
+/// Skippable frames are used to embed user-defined metadata within an LZ4
+/// stream. Decoders that don't recognize the frame type will skip over it.
+///
+/// The [index] (0–15) selects which skippable magic number to use:
+/// `0x184D2A50` through `0x184D2A5F`. Different indices can be used to
+/// distinguish different types of metadata.
+///
+/// The [data] can be up to 4 GiB in size (2^32 - 1 bytes).
+///
+/// Returns the encoded skippable frame (8 bytes header + data).
+///
+/// Example:
+/// ```dart
+/// final metadata = Uint8List.fromList(utf8.encode('{"version": 1}'));
+/// final skippable = lz4SkippableEncode(metadata, index: 0);
+/// // Concatenate with a regular frame:
+/// final combined = Uint8List.fromList([...skippable, ...lz4FrameEncode(data)]);
+/// ```
+Uint8List lz4SkippableEncode(Uint8List data, {int index = 0}) {
+  return lz4SkippableFrameEncode(data, index: index);
+}
+
+/// Encodes [src] as a legacy LZ4 frame (magic `0x184C2102`).
+///
+/// Legacy frames use 8 MiB blocks without checksums or content size headers.
+/// This format is produced by `lz4 -l` and is rarely needed for new data.
+/// Prefer the modern frame format ([lz4FrameEncode]) for new applications.
+///
+/// [acceleration] controls the speed/ratio tradeoff (higher = faster, lower ratio).
+Uint8List lz4LegacyEncode(Uint8List src, {int acceleration = 1}) {
+  return lz4LegacyFrameEncode(src, acceleration: acceleration);
+}
